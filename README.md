@@ -1,15 +1,15 @@
 # hermes-telegram-overlay
 
-`hermes-telegram-overlay` 是基于 `hermes-agent` 运行时的 Telegram overlay 仓库，不 fork Hermes 核心，只负责：
+`hermes-telegram-overlay` is a Telegram overlay repo that runs on top of the `hermes-agent` runtime. It does not fork the Hermes core; it only:
 
-- 注册 `/tw` `/twsearch` `/twuser` `/news` `/hotnews` `/tg` 命令
-- 接入 `opentwitter-mcp`、`opennews-mcp`、`tg-history-mcp`
-- 提供 `dev-macos` / `prod-devbox` profile 模板
-- 提供 bootstrap / status / deploy 脚本
+- Registers the `/tw` `/twsearch` `/twuser` `/news` `/hotnews` `/tg` commands
+- Wires in `opentwitter-mcp`, `opennews-mcp`, `tg-history-mcp`
+- Provides `dev-macos` / `prod-devbox` profile templates
+- Provides bootstrap / status / deploy scripts
 
-## 目录约定
+## Directory layout
 
-目标目录结构固定为 sibling clone：
+The target layout is a fixed sibling clone:
 
 ```text
 workspace/
@@ -19,17 +19,17 @@ workspace/
 └── opentwitter-mcp
 ```
 
-## 本地开发
+## Local development
 
-1. 创建运行环境。
+1. Create the runtime environment.
 
-脚本会自动优先选择 `Python >= 3.10`，并安装 overlay 自己的开发依赖（包括测试依赖）。这台机器上如果 `python3` 还是系统自带的 3.9，建议直接传 Homebrew Python：
+The script automatically prefers `Python >= 3.10` and installs the overlay's own development dependencies (including test dependencies). If `python3` on this machine is still the system-shipped 3.9, it is recommended to pass the Homebrew Python explicitly:
 
 ```bash
 python3 scripts/bootstrap_env.py --python /opt/homebrew/bin/python3.13
 ```
 
-2. 渲染并安装一个 Hermes profile：
+2. Render and install a Hermes profile:
 
 ```bash
 python3 scripts/bootstrap_profile.py \
@@ -38,17 +38,17 @@ python3 scripts/bootstrap_profile.py \
   --allowed-users "123456789"
 ```
 
-3. 填好 `~/.hermes/profiles/hermes-telegram-dev/.env` 里的 token / Telethon 凭据。
+3. Fill in the token / Telethon credentials in `~/.hermes/profiles/hermes-telegram-dev/.env`.
 
-4. 启动 gateway：
+4. Start the gateway:
 
 ```bash
 HERMES_HOME=~/.hermes/profiles/hermes-telegram-dev hermes gateway
 ```
 
-## Dev Box 模板渲染
+## Dev Box template rendering
 
-如果要给 Windows Dev Box / WSL 生成部署脚本，使用：
+To generate deployment scripts for a Windows Dev Box / WSL, use:
 
 ```bash
 python3 scripts/render_deploy.py \
@@ -57,11 +57,11 @@ python3 scripts/render_deploy.py \
   --output-dir /tmp/hermes-telegram-deploy
 ```
 
-这里的 `--overlay-repo` 和 `--hermes-home` 应该填目标运行机上的路径，通常是 WSL 路径，不是当前 macOS 本机路径。
+`--overlay-repo` and `--hermes-home` here should be paths on the target runtime machine, typically WSL paths, not paths on the current macOS host.
 
-## 关键约束
+## Key constraints
 
-- 主模型固定 `claude-opus-4-7`
-- LiteLLM endpoint 必须显式使用 `/v1`
-- Telegram 生产 profile 只开私聊白名单
-- overlay 命令层只做 glue，不复制 6551 MCP 逻辑
+- The primary model is fixed to `claude-opus-4-7`
+- The LiteLLM endpoint must explicitly use `/v1`
+- The Telegram production profile only allows the private-chat allowlist
+- The overlay command layer is glue only; do not duplicate 6551 MCP logic
