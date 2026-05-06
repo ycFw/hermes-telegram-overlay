@@ -12,6 +12,7 @@ dependencies = [
   "PyYAML>=6.0",
   "telethon>=1.36.0",
   "mcp[cli]>=1.25,<2",
+  "emoji>=2.8",
 ]
 
 [project.optional-dependencies]

@@ -5,10 +5,14 @@ from __future__ import annotations
 import asyncio
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, AsyncIterator, Iterable
+
+import emoji as _emoji_lib
+
+DEFAULT_FETCH_LIMIT = 1000
 
 
 class TelegramHistoryConfigError(ValueError):
@@ -82,6 +86,10 @@ class ChannelPost:
     views: int
     reaction_count: int
     link: str
+    emoji_count: int = 0
+    emoji_unique: tuple[str, ...] = ()
+    custom_emoji_count: int = 0
+    has_media: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -91,6 +99,10 @@ class ChannelPost:
             "views": self.views,
             "reaction_count": self.reaction_count,
             "link": self.link,
+            "emoji_count": self.emoji_count,
+            "emoji_unique": list(self.emoji_unique),
+            "custom_emoji_count": self.custom_emoji_count,
+            "has_media": self.has_media,
         }
 
 
@@ -123,8 +135,11 @@ def filter_posts(
     until_date: str = "",
     min_views: int = 0,
     query: str = "",
+    min_reactions: int = 0,
+    min_emoji_count: int = 0,
+    has_media: bool | None = None,
 ) -> list[ChannelPost]:
-    """Filter posts by date, view threshold, and free-text query."""
+    """Filter posts by date, view threshold, free-text query, reactions, emoji count, and media."""
     since_value = parse_optional_date(since_date)
     until_value = parse_optional_date(until_date)
     lowered_query = query.strip().lower()
@@ -138,6 +153,13 @@ def filter_posts(
             continue
         if int(post.views) < int(min_views):
             continue
+        if int(post.reaction_count) < int(min_reactions):
+            continue
+        total_emoji = int(post.emoji_count) + int(post.custom_emoji_count)
+        if total_emoji < int(min_emoji_count):
+            continue
+        if has_media is not None and bool(post.has_media) != bool(has_media):
+            continue
         if lowered_query and lowered_query not in post.text.lower():
             continue
         result.append(post)
@@ -150,15 +172,19 @@ def sort_posts(
     sort_by: str = "date",
     sort_order: str = "desc",
 ) -> list[ChannelPost]:
-    """Sort posts by date, views, or reaction_count."""
-    field = (sort_by or "date").strip().lower()
+    """Sort posts by date, views, reaction_count, emoji_count, or engagement."""
+    field_name = (sort_by or "date").strip().lower()
     descending = (sort_order or "desc").strip().lower() != "asc"
 
     def sort_key(post: ChannelPost) -> Any:
-        if field == "views":
+        if field_name == "views":
             return post.views
-        if field == "reaction_count":
+        if field_name == "reaction_count":
             return post.reaction_count
+        if field_name == "emoji_count":
+            return post.emoji_count + post.custom_emoji_count
+        if field_name == "engagement":
+            return post.views + 10 * post.reaction_count
         return post.date
 
     return sorted(list(posts), key=sort_key, reverse=descending)
@@ -180,14 +206,26 @@ async def collect_channel_posts(
         if not text:
             continue
         message_id = str(getattr(message, "id"))
+        text_str = str(text)
+        emoji_unique = tuple(_emoji_lib.distinct_emoji_list(text_str))
+        emoji_count = _emoji_lib.emoji_count(text_str)
+        entities = getattr(message, "entities", None) or []
+        custom_emoji_count = sum(
+            1 for e in entities if type(e).__name__ == "MessageEntityCustomEmoji"
+        )
+        has_media = getattr(message, "media", None) is not None
         posts.append(
             ChannelPost(
                 message_id=message_id,
                 date=_iso_datetime(getattr(message, "date", None)),
-                text=str(text),
+                text=text_str,
                 views=int(getattr(message, "views", 0) or 0),
                 reaction_count=_reaction_total(message),
                 link=build_post_link(channel_username, message_id),
+                emoji_count=emoji_count,
+                emoji_unique=emoji_unique,
+                custom_emoji_count=custom_emoji_count,
+                has_media=has_media,
             )
         )
     return posts
@@ -238,7 +276,7 @@ class TelegramHistoryService:
         self,
         *,
         channel: str,
-        limit: int = 0,
+        limit: int = DEFAULT_FETCH_LIMIT,
         since_date: str = "",
         until_date: str = "",
         min_views: int = 0,
@@ -246,6 +284,9 @@ class TelegramHistoryService:
         sort_order: str = "desc",
         query: str = "",
         top_n: int = 0,
+        min_reactions: int = 0,
+        min_emoji_count: int = 0,
+        has_media: bool | None = None,
     ) -> dict[str, Any]:
         """Read, filter, sort, and normalize Telegram channel history."""
         client = await self.ensure_client()
@@ -268,6 +309,9 @@ class TelegramHistoryService:
             until_date=until_date,
             min_views=min_views,
             query=query,
+            min_reactions=min_reactions,
+            min_emoji_count=min_emoji_count,
+            has_media=has_media,
         )
         posts = sort_posts(posts, sort_by=sort_by, sort_order=sort_order)
         if top_n > 0:
