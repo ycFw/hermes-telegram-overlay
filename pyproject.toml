@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-telegram-overlay"
+version = "0.1.0"
+description = "Hermes Agent Telegram overlay with 6551 MCP integrations and tg-history MCP."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "PyYAML>=6.0",
+  "telethon>=1.36.0",
+  "mcp[cli]>=1.25,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.entry-points."hermes_agent.plugins"]
+hermes-telegram-overlay = "hermes_telegram_overlay.plugin"
+
+[project.scripts]
+hermes-tg-history-mcp = "hermes_telegram_overlay.mcp_server:main"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,28 @@
+# Render this template with `python3 scripts/render_profile.py`.
+# The real generated file should live inside a Hermes profile directory.
+
+model:
+  default: claude-opus-4-7
+  provider: custom
+  base_url: __LITELLM_BASE_URL__
+  api_mode: chat_completions
+
+plugins:
+  enabled:
+    - hermes-telegram-overlay
+
+platform_toolsets:
+  telegram:
+    - memory
+    - skills
+    - web
+    - mcp-opentwitter-mcp
+    - mcp-opennews-mcp
+    - mcp-tg-history-mcp
+
+unauthorized_dm_behavior: ignore
+
+telegram:
+  require_mention: true
+  reactions: true
+

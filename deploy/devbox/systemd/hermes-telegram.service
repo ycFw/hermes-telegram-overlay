@@ -1,0 +1,20 @@
+[Unit]
+Description=Hermes Telegram Gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__OVERLAY_REPO__
+Environment=HERMES_HOME=__HERMES_HOME__
+Environment=TG_HISTORY_SESSION_DIR=__HERMES_HOME__/runtime/telethon
+EnvironmentFile=__HERMES_HOME__/.env
+ExecStart=/usr/bin/env bash -lc 'cd __OVERLAY_REPO__ && hermes gateway'
+Restart=always
+RestartSec=5
+StandardOutput=append:__HERMES_HOME__/runtime/logs/gateway.log
+StandardError=append:__HERMES_HOME__/runtime/logs/gateway.err.log
+
+[Install]
+WantedBy=default.target
+

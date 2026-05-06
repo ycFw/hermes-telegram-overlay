@@ -1,0 +1,4 @@
+name: hermes-telegram-overlay
+version: 0.1.0
+description: Telegram overlay commands backed by 6551 MCP tools and tg-history-mcp.
+
