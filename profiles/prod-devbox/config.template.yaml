@@ -1,7 +1,7 @@
 # Render this template with `python3 scripts/render_profile.py --profile prod-devbox`.
 
 model:
-  default: claude-opus-4-7
+  default: claude-opus-4-6
   provider: custom
   base_url: __LITELLM_BASE_URL__
   api_mode: chat_completions
