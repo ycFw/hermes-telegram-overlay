@@ -31,9 +31,7 @@ def test_build_profile_config_contains_fixed_model_and_toolsets(tmp_path):
     assert config["model"]["api_mode"] == "chat_completions"
     assert config["plugins"]["enabled"] == ["hermes-telegram-overlay"]
     assert config["platform_toolsets"]["telegram"] == [
-        "memory",
-        "skills",
-        "web",
+        "hermes-telegram",
         "mcp-opentwitter-mcp",
         "mcp-opennews-mcp",
         "mcp-tg-history-mcp",

@@ -117,9 +117,7 @@ def build_profile_config(context: ProfileRenderContext) -> dict:
             "plugins": {"enabled": [PLUGIN_NAME]},
             "platform_toolsets": {
                 "telegram": [
-                    "memory",
-                    "skills",
-                    "web",
+                    "hermes-telegram",
                     _mcp_toolset_name(OPENTWITTER_SERVER_NAME),
                     _mcp_toolset_name(OPENNEWS_SERVER_NAME),
                     _mcp_toolset_name(TG_HISTORY_SERVER_NAME),

@@ -12,9 +12,7 @@ plugins:
 
 platform_toolsets:
   telegram:
-    - memory
-    - skills
-    - web
+    - hermes-telegram
     - mcp-opentwitter-mcp
     - mcp-opennews-mcp
     - mcp-tg-history-mcp
