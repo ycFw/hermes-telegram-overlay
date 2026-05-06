@@ -1,0 +1,11 @@
+[Unit]
+Description=Hermes Telegram Auto-deploy (one-shot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__OVERLAY_REPO__
+ExecStart=__OVERLAY_REPO__/deploy/devbox/scripts/auto_deploy.sh
+StandardOutput=append:__HERMES_HOME__/runtime/logs/deploy.log
+StandardError=append:__HERMES_HOME__/runtime/logs/deploy.err.log

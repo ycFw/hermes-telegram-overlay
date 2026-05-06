@@ -118,3 +118,73 @@ If any step fails, stop immediately and report the error to me; do not try other
 3. **Cleanup after 2 weeks**:
    - Delete the old `HermesStackStart` / `HermesStackWatchdog` scheduled tasks only after the new deployment has been stable for 2 weeks
    - The old bot code at `~/workspace/hermes-agent/venv` can be kept for reference
+
+---
+
+## Section 2 — Auto-deploy timer + WSL boot task (one-time install)
+
+Run after Section 1's deployment is verified. After this section is in place, every `git push origin main` from macOS will be picked up by the Dev Box within ~60 seconds: it will `git fetch`, run pytest, and only restart `hermes-telegram.service` if tests pass.
+
+### 2.1 Render and install the deploy timer (inside WSL)
+
+```bash
+cd ~/workspace/hermes-telegram-overlay
+git pull --ff-only origin main
+
+python3 scripts/render_deploy.py \
+  --hermes-home ~/.hermes/profiles/hermes-telegram-prod \
+  --output-dir /tmp/hermes-telegram-deploy
+
+chmod +x ~/workspace/hermes-telegram-overlay/deploy/devbox/scripts/auto_deploy.sh
+
+mkdir -p ~/.config/systemd/user
+cp /tmp/hermes-telegram-deploy/systemd/hermes-telegram-deploy.service ~/.config/systemd/user/
+cp /tmp/hermes-telegram-deploy/systemd/hermes-telegram-deploy.timer   ~/.config/systemd/user/
+
+systemctl --user daemon-reload
+systemctl --user enable --now hermes-telegram-deploy.timer
+systemctl --user list-timers --all | grep hermes-telegram-deploy
+```
+
+### 2.2 Smoke test
+
+```bash
+~/workspace/hermes-telegram-overlay/deploy/devbox/scripts/auto_deploy.sh
+# expect no output and exit 0 when HEAD == origin/main
+
+tail -f ~/.hermes/profiles/hermes-telegram-prod/runtime/logs/deploy.log
+```
+
+### 2.3 Make WSL auto-start on Windows boot
+
+WSL2 distros do NOT start after a Windows reboot. Register a Task Scheduler task to wake the distro at logon + startup so user systemd timers run.
+
+Run once in elevated PowerShell on Windows (replace `<your-wsl-user>`):
+
+```powershell
+$action   = New-ScheduledTaskAction -Execute "wsl.exe" -Argument "-d Ubuntu -u <your-wsl-user> -- echo started"
+$trigger1 = New-ScheduledTaskTrigger -AtLogOn
+$trigger2 = New-ScheduledTaskTrigger -AtStartup
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+Register-ScheduledTask -TaskName "HermesWslBoot" `
+  -Action $action `
+  -Trigger @($trigger1, $trigger2) `
+  -Settings $settings `
+  -RunLevel Limited `
+  -Description "Wake WSL Ubuntu so hermes-telegram user systemd timer runs"
+
+# Verify
+Start-ScheduledTask -TaskName HermesWslBoot
+wsl.exe -d Ubuntu -- systemctl --user list-timers | findstr hermes-telegram-deploy
+```
+
+### 2.4 Failure-mode dry run (recommended)
+
+Push a deliberately failing test from macOS:
+
+```bash
+tail -f ~/.hermes/profiles/hermes-telegram-prod/runtime/logs/deploy.log
+# expect: "Tests failed; aborting deploy. Old service still running."
+systemctl --user show hermes-telegram.service -p ActiveEnterTimestamp
+# bot stays on old commit
+```

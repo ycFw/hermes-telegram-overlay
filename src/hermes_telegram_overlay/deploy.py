@@ -37,6 +37,8 @@ class DevboxDeployContext:
 
 DEPLOY_TEMPLATES: dict[Path, Path] = {
     Path("deploy/devbox/systemd/hermes-telegram.service"): Path("systemd/hermes-telegram.service"),
+    Path("deploy/devbox/systemd/hermes-telegram-deploy.service"): Path("systemd/hermes-telegram-deploy.service"),
+    Path("deploy/devbox/systemd/hermes-telegram-deploy.timer"): Path("systemd/hermes-telegram-deploy.timer"),
     Path("deploy/devbox/windows/Watch-HermesTelegram.ps1"): Path("windows/Watch-HermesTelegram.ps1"),
     Path("deploy/devbox/windows/Get-HermesTelegramStatus.ps1"): Path("windows/Get-HermesTelegramStatus.ps1"),
 }
