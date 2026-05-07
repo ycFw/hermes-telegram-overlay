@@ -30,7 +30,22 @@ if ! .venv/bin/python -m pytest tests -q; then
   exit 1
 fi
 
-systemctl --user restart hermes-telegram.service
+restart_service() {
+  case "$(uname -s)" in
+    Linux*)  systemctl --user restart hermes-telegram.service ;;
+    Darwin*) launchctl kickstart -k "gui/$(id -u)/com.hermes.telegram" ;;
+    *)       echo "Unsupported OS: $(uname -s)"; exit 1 ;;
+  esac
+}
+
+check_service() {
+  case "$(uname -s)" in
+    Linux*)  systemctl --user is-active hermes-telegram.service ;;
+    Darwin*) launchctl print "gui/$(id -u)/com.hermes.telegram" 2>/dev/null | grep -q "state = running" && echo "active" || echo "inactive" ;;
+  esac
+}
+
+restart_service
 sleep 3
-systemctl --user is-active hermes-telegram.service
+check_service
 echo "[$(date -Iseconds)] Deploy succeeded: $REMOTE"
